@@ -108,14 +108,21 @@ python -m examples.embedded.demo
 ```
 
 The script injects synthetic metrics; after about 7 seconds the terminal prints diagnoses, and the dashboard is reachable at `http://localhost:8765`.
+(Any Python environment works; on a PEP 668-protected system Python enter a venv first:
+`python3 -m venv .venv && source .venv/bin/activate`.)
 
-### Integrating with vLLM
+### Integrating with vLLM · Option 1: dedicated conda / venv environment (recommended)
 
-**Basic integration** — KPI / Roofline / NVML / diagnosis, loaded automatically, no parameter changes:
+A **fresh, dedicated environment** plus one command. Don't reuse an old environment (dependency soup
+is the #1 onboarding failure); the `[vllm]` extra bakes in the validated version pairing
+(`vllm>=0.20,<0.22`), so you don't match versions yourself:
 
 ```bash
-pip install pping-lang
-vllm serve <model>
+conda create -n pping-lang python=3.12 -y
+conda activate pping-lang
+# or: python3 -m venv .venv && source .venv/bin/activate
+pip install "pping-lang[vllm]"     # installs vLLM + plugin in one go
+vllm serve <model>                 # basic integration: KPI / roofline / NVML / diagnosis, loaded automatically
 ```
 
 The vLLM startup log will print the dashboard address `[pping-lang] dashboard → http://localhost:8765`.
@@ -123,13 +130,30 @@ The vLLM startup log will print the dashboard address `[pping-lang] dashboard �
 **Full integration** — additionally enable kernel-level PC Sampling (Deep Evidence, "why is it slow"):
 
 ```bash
-pip install pping-lang
-pping-vllm serve <model>      # 等价于 vllm serve,额外开启 Kernel 级采集
+sudo apt install g++              # to build libppingcupti.so; CUPTI headers ship inside the pip packages
+pping-vllm serve <model>          # equivalent to vllm serve, plus kernel-level collection
 ```
 
 `pping-vllm` is a thin wrapper: on first run it **compiles on-the-fly**, on the local machine, the bundled CUPTI injection library (`libppingcupti.so`) (auto-detecting cu12/cu13 and caching to `~/.pping-lang/`), sets the injection and sampling environment variables, then `exec vllm serve` (passing all arguments through). If the `.so` cannot be built (no g++ / no CUPTI), it **automatically falls back** to basic integration.
 
 > Kernel-level collection drives PC sampling in the **EngineCore process** via the `vllm.general_plugins` entry point, and the results flow back across processes to the frontend dashboard — it works on the **default multi-process `vllm serve`**, no single-process setup required.
+
+### Integrating with vLLM · Option 2: Docker (fully reproducible)
+
+The plugin, the compile toolchain, and a prebuilt `.so` are all baked into the image — the host
+Python is never touched, the version pairing matches Option 1, and it fits air-gapped machines /
+K8s / no-conda setups:
+
+```bash
+docker build -t pping-vllm:0.21-0.1.0 -f docker/Dockerfile .
+docker run --gpus all -p 8000:8000 -p 8765:8765 \
+  -v ~/.cache/huggingface:/root/.cache/huggingface \
+  pping-vllm:0.21-0.1.0 <model>
+```
+
+The container entrypoint is `pping-vllm serve` (arguments pass through to vllm); the startup log
+prints the same dashboard address. Counter unlocking (the host-side prerequisite for kernel-level
+collection) is identical for both options — see "Honest boundaries" above.
 
 ---
 
@@ -301,6 +325,7 @@ The API allows incompatible changes during the 0.x stage; the rule JSON schema a
 ```bash
 git clone https://github.com/leon-hf/pping-lang.git
 cd pping-lang
+python3 -m venv .venv && source .venv/bin/activate   # PEP 668-protected system Pythons (Debian/Ubuntu) need a venv
 pip install -e ".[dev,bench]"
 bash scripts/setup-hooks.sh
 pytest

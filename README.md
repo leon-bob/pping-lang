@@ -108,14 +108,20 @@ python -m examples.embedded.demo
 ```
 
 脚本注入合成指标，约 7 秒后终端打印诊断，dashboard 可访问 `http://localhost:8765`。
+（任何 Python 环境皆可；Debian/Ubuntu 系统 Python 受 PEP 668 保护，先进 venv：
+`python3 -m venv .venv && source .venv/bin/activate`。）
 
-### 接入 vLLM
+### 接入 vLLM · 方式一：conda / venv 独立环境（推荐）
 
-**基础接入** —— KPI / Roofline / NVML / 诊断,自动加载,不改任何参数：
+**专用新环境** + 一条命令装齐。别复用旧环境（依赖汤是上手失败的头号来源）；`[vllm]` extra
+内置已验证的版本配对（`vllm>=0.20,<0.22`），不用自己对版本：
 
 ```bash
-pip install pping-lang
-vllm serve <model>
+conda create -n pping-lang python=3.12 -y
+conda activate pping-lang
+# 或: python3 -m venv .venv && source .venv/bin/activate
+pip install "pping-lang[vllm]"     # vLLM + 插件一条命令装齐
+vllm serve <model>                 # 基础接入：KPI / Roofline / NVML / 诊断，自动加载
 ```
 
 vLLM 启动日志将输出 dashboard 地址 `[pping-lang] dashboard → http://localhost:8765`。
@@ -123,8 +129,8 @@ vLLM 启动日志将输出 dashboard 地址 `[pping-lang] dashboard → http://l
 **完整接入** —— 再加 Kernel 级 PC Sampling（Deep Evidence「为什么慢」）：
 
 ```bash
-pip install pping-lang
-pping-vllm serve <model>      # 等价于 vllm serve,额外开启 Kernel 级采集
+sudo apt install g++              # 现编 libppingcupti.so 用；CUPTI 头文件随 pip 包自带
+pping-vllm serve <model>          # 等价于 vllm serve,额外开启 Kernel 级采集
 ```
 
 `pping-vllm` 是一层薄包装：首次自动把内置的 CUPTI 注入库（`libppingcupti.so`）在本机**现编**
@@ -133,6 +139,21 @@ pping-vllm serve <model>      # 等价于 vllm serve,额外开启 Kernel 级采�
 
 > Kernel 级采集通过 `vllm.general_plugins` 入口在 **EngineCore 进程**驱动 PC sampling、结果跨
 > 进程回流前端 dashboard —— 在**默认多进程 `vllm serve`** 上即可工作,无需单进程。
+
+### 接入 vLLM · 方式二：Docker（完全可复现）
+
+插件、编译链、预编译的 `.so` 全部烙进镜像 —— 不碰宿主机 Python，版本配对与方式一相同，
+适合气墙机器 / K8s / 不装 conda 的场景：
+
+```bash
+docker build -t pping-vllm:0.21-0.1.0 -f docker/Dockerfile .
+docker run --gpus all -p 8000:8000 -p 8765:8765 \
+  -v ~/.cache/huggingface:/root/.cache/huggingface \
+  pping-vllm:0.21-0.1.0 <model>
+```
+
+容器入口即 `pping-vllm serve`（参数原样透传给 vllm），启动日志同样输出 dashboard 地址。
+性能计数器解锁（Kernel 级采集的宿主机前置）两种方式相同，见上文「诚实边界」。
 
 ---
 
@@ -304,6 +325,7 @@ API 在 0.x 阶段允许不兼容变更；规则 JSON schema 与 dashboard URL �
 ```bash
 git clone https://github.com/leon-hf/pping-lang.git
 cd pping-lang
+python3 -m venv .venv && source .venv/bin/activate   # Debian/Ubuntu 系统 Python 受 PEP 668 保护
 pip install -e ".[dev,bench]"
 bash scripts/setup-hooks.sh
 pytest

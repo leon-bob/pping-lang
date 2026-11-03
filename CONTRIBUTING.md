@@ -7,6 +7,7 @@
 ```bash
 git clone https://github.com/leon/pping-lang.git
 cd pping-lang
+python3 -m venv .venv && source .venv/bin/activate   # Debian/Ubuntu 系统 Python 受 PEP 668 保护
 pip install -e ".[dev]"
 pytest
 ```

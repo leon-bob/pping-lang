@@ -12,7 +12,7 @@
 
 - 单卡 NVIDIA GPU 机器（实测环境：RTX 5060 Ti 16GB / Blackwell；其他架构理论可跑、未实测）
 - Docker + NVIDIA Container Toolkit（`docker run --gpus all` 可用）
-- Python ≥ 3.10，`pip install pping-lang[bench]`（或源码 `pip install -e '.[bench]'`）
+- Python ≥ 3.10，`pip install 'pping-lang[bench]'`（或源码 `pip install -e '.[bench]'`；Debian/Ubuntu 系统 Python 受 PEP 668 保护，先进 venv，见 README 快速上手）
 - 一个 LLM API key 作为 Agent（OpenAI 兼容端点 / Anthropic / Kimi Coding 均可）
 - vLLM 官方镜像：`docker pull vllm/vllm-openai:v0.21.0`（动作空间按 0.21 校准）
 
