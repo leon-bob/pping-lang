@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-11-03
+
+### Added
+
+- Docker 快速开始镜像 `docker/Dockerfile`：基于已验证配对 `vllm/vllm-openai:v0.21.0`，内置 g++/CUPTI 编译链并构建期预编译 `.so`，入口 `pping-vllm serve`（参数透传）
+- README 快速上手改双路径（中英同步）：方式一 conda/venv 独立环境 `pip install "pping-lang[vllm]"` 一条命令装齐（extra 内置已验证版本配对）；方式二 Docker 完全可复现
+
+### Fixed
+
+- 安装指引补充 PEP 668（Debian 12+ / Ubuntu 24.04+ 系统 Python）场景：先建 venv 或用 uv，插件须与 vLLM 同环境（README 中英同步、CONTRIBUTING、autopilot-quickstart）
+- builder 探测只认 vllm 官方镜像的 dist-packages 路径布局 → conda/venv 环境（nvidia/triton 包在当前解释器 site-packages 下）探测必失败、`pping-vllm` 静默降级丢 Kernel 级采集；现优先按当前解释器探测（新增单测覆盖 conda 布局）
+- autopilot-quickstart 的 `pip install pping-lang[bench]` 加引号——zsh 下裸 `[bench]` 会被当 glob 报 `no matches found`
+
 ## [0.1.0] — 2026-07-27
 
 正式版：跳出 alpha。诊断引擎重写成规则决策树、Autopilot 从 0 到 M0+M1（诊断驱动自主调优的旗舰能力）、
