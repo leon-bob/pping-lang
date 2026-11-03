@@ -48,6 +48,28 @@ def test_glob1_returns_first_or_none():
     assert hit and hit.endswith(".py")
 
 
+def test_detect_covers_conda_venv_layout(monkeypatch, tmp_path):
+    """conda/venv 布局:nvidia/triton pip 包在当前解释器的 site-packages 下(而非 vllm
+    官方镜像的 /usr/local/lib/python3*/dist-packages)。伪造该布局,_detect 必须能找到
+    cupti 库/头与 triton 的 cuda.h;本机无驱动时,只允许最后一步(找 libcuda)失败。"""
+    cupti = tmp_path / "nvidia" / "cuda_cupti"
+    (cupti / "lib" / "libcupti.so.1").parent.mkdir(parents=True)
+    (cupti / "lib" / "libcupti.so.1").write_bytes(b"")
+    (cupti / "include" / "cupti_pcsampling.h").parent.mkdir(parents=True)
+    (cupti / "include" / "cupti_pcsampling.h").write_bytes(b"")
+    tri = tmp_path / "triton" / "backends" / "nvidia" / "include"
+    (tri / "crt").mkdir(parents=True)
+    (tri / "cuda.h").write_bytes(b"")
+    (tri / "crt" / "host_defines.h").write_bytes(b"")
+    monkeypatch.setattr(builder.sysconfig, "get_paths", lambda *a, **k: {"purelib": str(tmp_path)})
+    try:
+        det = builder._detect()
+        assert det["cupti_libdir"] == str(cupti / "lib")   # 命中的是 conda 布局,不是镜像路径
+    except BuildError as e:
+        # 无 GPU 机器:探测应一路走到 libcuda 才断;更早失败 = conda 布局没被覆盖(regression)
+        assert "libcuda" in str(e), f"failed before libcuda step: {e}"
+
+
 def test_cli_sets_env_and_execs(monkeypatch, tmp_path):
     captured: dict = {}
     fake_vllm = tmp_path / "vllm"

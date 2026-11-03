@@ -11,6 +11,7 @@ import glob
 import logging
 import os
 import subprocess
+import sysconfig
 from pathlib import Path
 
 logger = logging.getLogger("pping_lang.native.builder")
@@ -36,10 +37,21 @@ def _glob1(patterns: list[str]) -> str | None:
     return None
 
 
+def _nvidia_roots() -> list[str]:
+    """nvidia pip 包根目录候选(顺序即优先级):当前解释器在前(conda/venv 布局,
+    torch 的 nvidia-cuda-cupti 装在 $CONDA_PREFIX 的 site-packages 下),vllm 官方
+    镜像的系统 dist-packages 在后。只认后者时 conda 环境探测必失败 → 静默降级。"""
+    return [
+        os.path.join(sysconfig.get_paths()["purelib"], "nvidia"),
+        "/usr/local/lib/python3*/dist-packages/nvidia",
+    ]
+
+
 def _detect() -> dict[str, str]:
     """探测编译所需路径。任一缺失抛 BuildError。"""
-    site = "/usr/local/lib/python3*/dist-packages/nvidia"
+    mysite, site = _nvidia_roots()
     cupti_lib = _glob1([
+        f"{mysite}/*/lib/libcupti.so.1*",
         f"{site}/*/lib/libcupti.so.1*",
         "/usr/local/cuda*/lib64/libcupti.so.1*",
         "/usr/local/cuda*/targets/*/lib/libcupti.so.1*",
@@ -47,6 +59,7 @@ def _detect() -> dict[str, str]:
     if not cupti_lib:
         raise BuildError("找不到 libcupti.so.1*(需 nvidia-cuda-cupti-cuXX 或 CUDA toolkit)")
     cupti_h = _glob1([
+        f"{mysite}/*/include/cupti_pcsampling.h",
         f"{site}/*/include/cupti_pcsampling.h",
         "/usr/local/cuda*/include/cupti_pcsampling.h",
         "/usr/local/cuda*/extras/CUPTI/include/cupti_pcsampling.h",
@@ -57,8 +70,10 @@ def _detect() -> dict[str, str]:
     # include 到 crt/host_defines.h;triton 自带整套 CUDA 头(含 crt/),而 nvidia/cuXX/
     # include 只有 cupti+部分头、缺 crt/ → 选错就 "fatal error: crt/host_defines.h"。
     cuda_inc: str | None = None
+    purelib = sysconfig.get_paths()["purelib"]
     for ch in sorted(set(
-        glob.glob("/usr/local/lib/python3*/dist-packages/triton/backends/nvidia/include/cuda.h")
+        glob.glob(os.path.join(purelib, "triton/backends/nvidia/include/cuda.h"))
+        + glob.glob("/usr/local/lib/python3*/dist-packages/triton/backends/nvidia/include/cuda.h")
         + glob.glob("/usr/local/cuda*/include/cuda.h")
         + glob.glob(f"{site}/*/include/cuda.h")
     )):
