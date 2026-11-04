@@ -97,6 +97,19 @@ def test_cli_sets_env_and_execs(monkeypatch, tmp_path):
         os.environ.update(_snap)
 
 
+def test_open_conn_lazy_duckdb(monkeypatch):
+    """duckdb 缺席时 open_conn 在调用点抛 ImportError(不连坐 import 链)。"""
+    import sys
+
+    from pping_lang.api import queries
+
+    monkeypatch.setitem(sys.modules, "duckdb", None)  # None 项让 import duckdb 抛 ImportError
+    import pytest
+
+    with pytest.raises(ImportError):
+        queries.open_conn(":memory:")
+
+
 def test_extract_opt():
     """--host VALUE / --host=VALUE / 缺失 / 末次优先。"""
     assert cli._extract_opt(["serve", "m", "--host", "0.0.0.0", "--port", "8000"], "--host") == "0.0.0.0"

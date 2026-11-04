@@ -20,6 +20,12 @@ from types import SimpleNamespace
 
 DEMO_DB = Path(tempfile.gettempdir()) / "pping-lang-demo.duckdb"
 
+try:  # bench 历史(duckdb)属 [bench] extra;缺了 demo 其余照跑,只是压测 tab 无种子
+    import duckdb as _duckdb  # noqa: F401
+    HAVE_DUCKDB = True
+except ImportError:
+    HAVE_DUCKDB = False
+
 
 def make_unhealthy_scheduler_stats(step: int) -> SimpleNamespace:
     """合成 SchedulerStats: 高 padding (~70%) + 低 MFU (~5%)。"""
@@ -192,7 +198,11 @@ def main() -> int:
     print("pping-lang demo — synthetic vLLM stats: low MFU + idle HBM + live requests")
     print("=" * 70)
     print(f"Data dir: {DEMO_DB.parent}")
-    print(f"  metrics.jsonl(指标流) / diagnoses.jsonl(诊断) / {DEMO_DB.name}(bench 历史)")
+    if HAVE_DUCKDB:
+        print(f"  metrics.jsonl(指标流) / diagnoses.jsonl(诊断) / {DEMO_DB.name}(bench 历史)")
+    else:
+        print("  metrics.jsonl(指标流) / diagnoses.jsonl(诊断) "
+              "(bench 历史需 'pping-lang[bench]',未装,已跳过)")
     print(f"Duration: {duration_s}s, step every 100ms")
     print("Expecting rule A 「双低」 to fire within a few seconds...\n")
 
@@ -205,7 +215,10 @@ def main() -> int:
 
     # Pre-populate a sample bench run so the 压测 tab has something to show
     # (real bench needs an actual vLLM endpoint to hit; demo just shows the UI).
-    _seed_demo_bench_runs(DEMO_DB)
+    if HAVE_DUCKDB:
+        _seed_demo_bench_runs(DEMO_DB)
+    else:
+        print("(跳过 bench 历史种子:未装 duckdb —— pip install 'pping-lang[bench]' 可启用)\n")
 
     start = time.monotonic()
     step = 0
@@ -241,7 +254,8 @@ def main() -> int:
         print(f"Rule eval ran {plugin._diag_engine.eval_count} times, "
               f"fired {plugin._diag_engine.fire_count} times.")
     print(f"Diagnoses: {DEMO_DB.parent / 'diagnoses.jsonl'}")
-    print(f"Bench:     duckdb {DEMO_DB} -c 'SELECT name, status FROM bench_runs;'")
+    if HAVE_DUCKDB:
+        print(f"Bench:     duckdb {DEMO_DB} -c 'SELECT name, status FROM bench_runs;'")
     print("=" * 70)
     # 交互式终端:挂住进程,浏览器慢慢看(dashboard 是进程内服务,退出即关);
     # CI/非 TTY(管道、pytest)自动跳过,不阻塞。想加长数据窗口仍用 DEMO_DURATION_S。

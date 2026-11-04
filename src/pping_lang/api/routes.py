@@ -1521,7 +1521,12 @@ def build_app(
     def bench_list(
         limit: int = Query(50, ge=1, le=500),
     ) -> dict[str, Any]:
-        conn = open_conn(db_path)
+        try:
+            conn = open_conn(db_path)
+        except ImportError:
+            # duckdb 属 [bench] extra:未装时压测历史给空态 + 提示,不影响其余 API
+            return {"runs": [], "now_ns": time.monotonic_ns(),
+                    "hint": "pip install 'pping-lang[bench]' to enable bench history"}
         try:
             try:
                 bench_store.init_bench_table(conn)
@@ -1540,7 +1545,12 @@ def build_app(
     # === GET /api/bench/runs/{run_id} — single run detail ===
     @app.get("/api/bench/runs/{run_id}")
     def bench_detail(run_id: str) -> dict[str, Any]:
-        conn = open_conn(db_path)
+        try:
+            conn = open_conn(db_path)
+        except ImportError:
+            raise HTTPException(
+                404, f"bench run {run_id!r} not found "
+                     "(bench history needs 'pping-lang[bench]')")
         try:
             run = bench_store.get_run(conn, run_id)
         finally:
@@ -1602,8 +1612,14 @@ def build_app(
         except (ValueError, TypeError) as e:
             raise HTTPException(422, f"invalid scenario: {e}")
 
-        # Persist initial 'running' row
-        conn = open_conn(db_path)
+        # Persist initial 'running' row(duckdb/httpx 均属 [bench] extra,缺则 503 一次说清)
+        try:
+            conn = open_conn(db_path)
+            from pping_lang.bench.client import OpenAIStreamClient  # noqa: F401, PLC0415 — httpx 探针
+        except ImportError as e:
+            raise HTTPException(
+                503, "bench 需要 pping-lang[bench] (duckdb + httpx): "
+                     "pip install 'pping-lang[bench]'") from e
         try:
             bench_store.init_bench_table(conn)
             run_id = bench_store.generate_run_id(conn, "static")

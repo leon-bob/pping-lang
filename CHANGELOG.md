@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.1.7] — 2026-11-04
+
+### Changed
+
+- **duckdb 从核心依赖降级为 `[bench]` extra**（与 httpx 同伴）：核心安装少一个 ~18MB 二进制轮子。bench 历史（`bench_runs`）与压测 API 需要 `pip install 'pping-lang[bench]'`；未装时 dashboard/诊断/demo 完全不受影响，压测 tab 给空态 + 安装提示（`GET /api/bench/runs` 带 hint、`POST /api/bench/start` 503、`open_conn` 惰性导入）、demo 跳过 bench 种子并注明
+
 ## [0.1.6] — 2026-11-04
 
 ### Added

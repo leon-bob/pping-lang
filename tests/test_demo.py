@@ -21,6 +21,22 @@ def test_demo_main_smoke(monkeypatch):
         os.environ.update(_snap)
 
 
+def test_demo_skips_bench_seed_without_duckdb(monkeypatch, capsys):
+    """HAVE_DUCKDB=False → 种子跳过、提示出现,主流程照跑(duckdb 属 [bench] extra)。"""
+    from pping_lang import demo as demo_mod
+
+    monkeypatch.setattr(demo_mod, "HAVE_DUCKDB", False)
+    monkeypatch.setenv("DEMO_DURATION_S", "0")
+    _snap = dict(os.environ)
+    try:
+        assert main() == 0
+        out = capsys.readouterr().out
+        assert "pping-lang[bench]" in out
+    finally:
+        os.environ.clear()
+        os.environ.update(_snap)
+
+
 def test_demo_holds_on_tty(monkeypatch, capsys):
     """交互式终端(isatty True)→ 结束横幅后挂住等 Enter;EOF/输入异常不炸。"""
     import builtins
