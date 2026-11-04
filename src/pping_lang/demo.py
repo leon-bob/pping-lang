@@ -191,7 +191,8 @@ def main() -> int:
     print("=" * 70)
     print("pping-lang demo — synthetic vLLM stats: low MFU + idle HBM + live requests")
     print("=" * 70)
-    print(f"DB:       {DEMO_DB}")
+    print(f"Data dir: {DEMO_DB.parent}")
+    print(f"  metrics.jsonl(指标流) / diagnoses.jsonl(诊断) / {DEMO_DB.name}(bench 历史)")
     print(f"Duration: {duration_s}s, step every 100ms")
     print("Expecting rule A 「双低」 to fire within a few seconds...\n")
 
@@ -239,7 +240,10 @@ def main() -> int:
     if plugin._diag_engine is not None:
         print(f"Rule eval ran {plugin._diag_engine.eval_count} times, "
               f"fired {plugin._diag_engine.fire_count} times.")
-    print(f"Inspect data: duckdb {DEMO_DB} -c 'SELECT * FROM diagnoses;'")
+    print(f"Diagnoses: {DEMO_DB.parent / 'diagnoses.jsonl'}")
+    print(f"Bench:     duckdb {DEMO_DB} -c 'SELECT name, status FROM bench_runs;'")
+    print("Dashboard stops with this process — keep it up with:")
+    print("  DEMO_DURATION_S=600 pping-lang demo")
     print("=" * 70)
     return 0
 

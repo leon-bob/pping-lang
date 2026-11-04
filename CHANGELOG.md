@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.1.5] — 2026-11-04
+
+### Fixed
+
+- `pping-lang demo` 结束提示查错表：诊断自 0.1.0 起存 `diagnoses.jsonl`（JSONL 取代 DuckDB 主存储），DuckDB 只存 bench 历史 —— 尾部 `duckdb … SELECT * FROM diagnoses` 指向不存在的表。改为：头部列数据目录三件套（metrics.jsonl / diagnoses.jsonl / *.duckdb），尾部给正确的诊断与 bench 查看命令，并注明 dashboard 随进程结束、`DEMO_DURATION_S` 挂长看
+
 ## [0.1.4] — 2026-11-04
 
 ### Added
