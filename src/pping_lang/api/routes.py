@@ -25,7 +25,9 @@ from fastapi.responses import HTMLResponse
 from pping_lang.api.queries import open_conn  # bench_runs only (mutable rows → DuckDB)
 from pping_lang.api.schemas import BenchStartIn, RuleIn, RuleTestRequest
 from pping_lang.bench import store as bench_store
-from pping_lang.bench.client import OpenAIStreamClient
+
+# 注意:不要在模块顶层 import pping_lang.bench.client —— 它顶层要 httpx(仅 extras
+# 提供),会把无 extras 安装的 dashboard/demo 一起拖死。用点内惰性导入。
 from pping_lang.bench.runner import run_static
 from pping_lang.bench.scenarios.schema import SLO, StaticScenario
 from pping_lang.clock import wall_ns
@@ -1302,6 +1304,9 @@ def build_app(
         run_id: str, scenario: StaticScenario,
     ) -> None:
         """Run a bench in-process; finalize DB on completion or failure."""
+        # 惰性导入:client.py 顶层要 httpx(仅 extras 提供),dashboard/API 本身不能连坐
+        from pping_lang.bench.client import OpenAIStreamClient  # noqa: PLC0415
+
         try:
             async with OpenAIStreamClient(
                 scenario.endpoint, timeout_s=scenario.timeout_s,
@@ -1428,6 +1433,8 @@ def build_app(
                     api="completions", prompt_source="synthetic",
                 )
                 scenario.validate()
+                from pping_lang.bench.client import OpenAIStreamClient  # noqa: PLC0415
+
                 async with OpenAIStreamClient(endpoint, timeout_s=scenario.timeout_s) as client:
                     summary = await run_static(scenario, client)
                 tps = summary.output_throughput_tps

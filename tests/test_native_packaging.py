@@ -105,6 +105,31 @@ def test_extract_opt():
     assert cli._extract_opt(["--host", "a", "--host", "b"], "--host") == "b"
 
 
+def test_cli_dispatch_version(capsys):
+    assert cli.main(["version"]) == 0
+    assert "pping-lang" in capsys.readouterr().out
+
+
+def test_cli_dispatch_help_and_unknown(capsys):
+    assert cli.main([]) == 0
+    assert "demo" in capsys.readouterr().out
+    assert cli.main(["nope"]) == 2  # 未知子命令 → usage 进 stderr,退出码 2
+
+
+def test_cli_dispatch_demo_routes(monkeypatch):
+    called = {}
+    monkeypatch.setattr("pping_lang.demo.main", lambda: called.update(ok=True) or 0)
+    assert cli.main(["demo"]) == 0
+    assert called.get("ok")
+
+
+def test_cli_dispatch_serve_routes(monkeypatch):
+    got: dict = {}
+    monkeypatch.setattr(cli, "pping_vllm_main", lambda a: got.update(args=a))
+    assert cli.main(["serve", "m", "--port", "8000"]) == 0
+    assert got["args"] == ["m", "--port", "8000"]
+
+
 def test_cli_dashboard_host_follows_vllm_host(monkeypatch, tmp_path):
     """`pping-vllm serve --host 0.0.0.0` → dashboard 也绑 0.0.0.0(容器里 docker 转发可达);
     无 --host 时不动(用插件默认 127.0.0.1);显式 PPING_LANG_API_HOST 可覆盖(setdefault)。"""

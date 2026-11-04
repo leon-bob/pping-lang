@@ -18,8 +18,6 @@ import json
 from importlib import resources
 from pathlib import Path
 
-from pping_lang.bench.client import synthesize_prompt
-
 # Bundled datasets — listed for `available_builtins()` and for the UI dropdown.
 # Anything in pping_lang/bench/prompts/data/<NAME>.jsonl is loadable as
 # `builtin:<NAME>` regardless of this list; this constant only governs what
@@ -34,6 +32,9 @@ def load_prompts(source: str, target_tokens: int = 500) -> list[str]:
     file, or empty file. Always returns at least one prompt on success.
     """
     if not source or source == "synthetic":
+        # 惰性导入:client.py 顶层要 httpx(仅 extras 提供),别连坐无 extras 的安装
+        from pping_lang.bench.client import synthesize_prompt  # noqa: PLC0415
+
         return [synthesize_prompt(target_tokens)]
     if source.startswith("builtin:"):
         name = source[len("builtin:"):].strip()

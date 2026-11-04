@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [0.1.4] — 2026-11-04
+
+### Added
+
+- 统一 CLI 入口 `pping-lang <子命令>`：`demo`（离线 demo）/ `serve`（等价 pping-vllm，透传 vllm serve 参数）/ `version`；`python -m pping_lang` 同形。`pping-demo` / `pping-vllm` 保留为兼容别名，README 主推 `pping-lang demo`
+
+### Fixed
+
+- 无 extras 安装（纯 `pip install pping-lang`）连 demo/dashboard 都会 `ModuleNotFoundError: httpx`：`bench/__init__`、`bench/prompts/loader.py`、`api/routes.py` 三处顶层 import 连坐 —— 全部改惰性导入（打流量的 bench 功能用到时才要 httpx）
+- `pping_lang.__version__` 硬编码 0.1.0a2 从未同步 —— 改从安装元数据读取（单一来源 pyproject）
+
 ## [0.1.3] — 2026-11-04
 
 ### Fixed

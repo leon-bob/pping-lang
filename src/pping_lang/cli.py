@@ -1,4 +1,9 @@
-"""pping-vllm：一条命令把 pping-lang 接到 vllm(纯 pip 装上即用)。
+"""pping-lang CLI：统一入口 `pping-lang <子命令>`(demo/serve/version)。
+
+    pping-lang demo            离线 demo(无需 GPU/vLLM)
+    pping-lang serve <args>    等价 pping-vllm:设 Kernel 级采集 env 后 exec vllm serve
+
+pping-vllm：一条命令把 pping-lang 接到 vllm(纯 pip 装上即用)。
 
     pping-vllm serve <model> [vllm 的参数...]
 
@@ -24,8 +29,36 @@ def _extract_opt(args: list[str], name: str) -> str | None:
     return val
 
 
-def pping_vllm_main() -> None:
-    args = sys.argv[1:]
+_USAGE = """用法: pping-lang <子命令>
+  pping-lang demo            离线 demo(无需 GPU/vLLM,合成指标 → 「双低」诊断)
+  pping-lang serve <args>    设 Kernel 级采集后 exec `vllm serve <args>`(等价 pping-vllm)
+  pping-lang version         版本
+(兼容别名: pping-demo / pping-vllm)"""
+
+
+def main(argv: list[str] | None = None) -> int:
+    """`pping-lang <子命令>` 分发。console script / python -m pping_lang 共用。"""
+    argv = sys.argv[1:] if argv is None else argv
+    if not argv or argv[0] in ("-h", "--help", "help"):
+        print(_USAGE)
+        return 0
+    cmd, rest = argv[0], argv[1:]
+    if cmd == "demo":
+        from pping_lang.demo import main as demo_main  # noqa: PLC0415 — 延迟导入便于测试替身
+        return demo_main()
+    if cmd == "serve":
+        pping_vllm_main(rest)          # exec 成功不返回;失败自己 raise
+        return 0
+    if cmd == "version":
+        from pping_lang import __version__  # noqa: PLC0415
+        print(f"pping-lang {__version__}")
+        return 0
+    print(f"未知子命令 {cmd!r}\n{_USAGE}", file=sys.stderr)
+    return 2
+
+
+def pping_vllm_main(args: list[str] | None = None) -> None:
+    args = sys.argv[1:] if args is None else args
 
     # dashboard host 默认跟随 vllm 的 --host:`serve` 本就是对外服务,容器/远程里 vllm
     # 监听 0.0.0.0 时 dashboard 也该如此,否则 docker 端口转发够不到 127.0.0.1 的监听
