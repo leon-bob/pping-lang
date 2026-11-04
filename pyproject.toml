@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pping-lang"
-version = "0.1.5"
+version = "0.1.6"
 description = "vLLM 性能诊断插件——把 vLLM 指标 + GPU 物理层数据喂给规则引擎，自动告诉你为什么慢"
 readme = "README.md"
 requires-python = ">=3.10"

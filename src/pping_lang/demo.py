@@ -242,9 +242,16 @@ def main() -> int:
               f"fired {plugin._diag_engine.fire_count} times.")
     print(f"Diagnoses: {DEMO_DB.parent / 'diagnoses.jsonl'}")
     print(f"Bench:     duckdb {DEMO_DB} -c 'SELECT name, status FROM bench_runs;'")
-    print("Dashboard stops with this process — keep it up with:")
-    print("  DEMO_DURATION_S=600 pping-lang demo")
     print("=" * 70)
+    # 交互式终端:挂住进程,浏览器慢慢看(dashboard 是进程内服务,退出即关);
+    # CI/非 TTY(管道、pytest)自动跳过,不阻塞。想加长数据窗口仍用 DEMO_DURATION_S。
+    if sys.stdin is not None and sys.stdin.isatty():
+        host = os.environ.get("PPING_LANG_API_HOST", "127.0.0.1")
+        port = os.environ.get("PPING_LANG_API_PORT", "18765")
+        try:
+            input(f"\nDashboard live at http://{host}:{port} — 按 Enter 退出...")
+        except EOFError:
+            pass
     return 0
 
 

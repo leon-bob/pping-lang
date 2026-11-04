@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.1.6] — 2026-11-04
+
+### Added
+
+- `pping-lang demo` 结束后在交互式终端挂住等 Enter（dashboard 是进程内服务，退出即关；此前用户还没打开浏览器进程就没了）。非 TTY（CI/管道/pytest）自动跳过不阻塞
+
 ## [0.1.5] — 2026-11-04
 
 ### Fixed

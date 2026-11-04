@@ -21,6 +21,27 @@ def test_demo_main_smoke(monkeypatch):
         os.environ.update(_snap)
 
 
+def test_demo_holds_on_tty(monkeypatch, capsys):
+    """交互式终端(isatty True)→ 结束横幅后挂住等 Enter;EOF/输入异常不炸。"""
+    import builtins
+
+    class _FakeStdin:
+        @staticmethod
+        def isatty() -> bool:
+            return True
+
+    monkeypatch.setattr("sys.stdin", _FakeStdin())
+    monkeypatch.setattr(builtins, "input", lambda *_: (_ for _ in ()).throw(EOFError))
+    monkeypatch.setenv("DEMO_DURATION_S", "0")
+    _snap = dict(os.environ)
+    try:
+        assert main() == 0
+        assert "Dashboard live at" in capsys.readouterr().out
+    finally:
+        os.environ.clear()
+        os.environ.update(_snap)
+
+
 def test_demo_fires_double_low(monkeypatch, capsys):
     """3 秒真实跑:合成指标喂满规则 A(双低)的三条 check,断言 fire_count ≥ 1。
 
