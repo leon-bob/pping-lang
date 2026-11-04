@@ -194,17 +194,22 @@ def main() -> int:
     # H100 SXM peak — 用于 MFU 派生
     demo_gpu_peak = GPUPeak(bf16_tflops=989.0, mem_bw_gbs=3350.0)
 
-    print("=" * 70)
-    print("pping-lang demo — synthetic vLLM stats: low MFU + idle HBM + live requests")
-    print("=" * 70)
-    print(f"Data dir: {DEMO_DB.parent}")
+    host = os.environ.get("PPING_LANG_API_HOST", "127.0.0.1")
+    port = os.environ.get("PPING_LANG_API_PORT", "18765")
+    print("=" * 66)
+    print("pping-lang 离线 demo —— 无需 GPU / vLLM,合成流量演示诊断引擎")
+    print("=" * 66)
+    print("  剧情      持续在途请求 + 低 MFU + 显存带宽空闲 → 应触发「双低」诊断")
+    print(f"  时长      {duration_s} 秒,每 0.1 秒 1 步"
+          "  (想看更久:DEMO_DURATION_S=600 pping-lang demo)")
+    print(f"  数据目录  {DEMO_DB.parent}")
+    print("             ├─ metrics.jsonl          指标明细")
+    print("             ├─ diagnoses.jsonl        诊断记录")
     if HAVE_DUCKDB:
-        print(f"  metrics.jsonl(指标流) / diagnoses.jsonl(诊断) / {DEMO_DB.name}(bench 历史)")
+        print(f"             └─ {DEMO_DB.name}  bench 历史")
     else:
-        print("  metrics.jsonl(指标流) / diagnoses.jsonl(诊断) "
-              "(bench 历史需 'pping-lang[bench]',未装,已跳过)")
-    print(f"Duration: {duration_s}s, step every 100ms")
-    print("Expecting rule A 「双低」 to fire within a few seconds...\n")
+        print("             └─ (bench 历史未启用 —— pip install 'pping-lang[bench]')")
+    print(f"  Dashboard http://{host}:{port}  浏览器打开可实时看\n")
 
     plugin = PpingLangStatLogger(vllm_config=None, engine_index=0)
     plugin.log_engine_initialized()
@@ -247,22 +252,19 @@ def main() -> int:
         if plugin._sink is not None:
             plugin._sink.close()
 
-    print(f"\n{'=' * 70}")
-    print(f"Demo done. {step} synthetic steps pushed in {duration_s}s.")
-    if plugin._diag_engine is not None:
-        print(f"Rule eval ran {plugin._diag_engine.eval_count} times, "
-              f"fired {plugin._diag_engine.fire_count} times.")
-    print(f"Diagnoses: {DEMO_DB.parent / 'diagnoses.jsonl'}")
+    print(f"\n{'=' * 66}")
+    fired = plugin._diag_engine.fire_count if plugin._diag_engine is not None else 0
+    evals = plugin._diag_engine.eval_count if plugin._diag_engine is not None else 0
+    print(f"  完成:{duration_s} 秒注入 {step} 步,诊断引擎评估 {evals} 轮、触发 {fired} 次")
+    print(f"  诊断记录:{DEMO_DB.parent / 'diagnoses.jsonl'}")
     if HAVE_DUCKDB:
-        print(f"Bench:     duckdb {DEMO_DB} -c 'SELECT name, status FROM bench_runs;'")
-    print("=" * 70)
+        print(f"  bench 历史:duckdb {DEMO_DB} -c 'SELECT name, status FROM bench_runs;'")
+    print("=" * 66)
     # 交互式终端:挂住进程,浏览器慢慢看(dashboard 是进程内服务,退出即关);
     # CI/非 TTY(管道、pytest)自动跳过,不阻塞。想加长数据窗口仍用 DEMO_DURATION_S。
     if sys.stdin is not None and sys.stdin.isatty():
-        host = os.environ.get("PPING_LANG_API_HOST", "127.0.0.1")
-        port = os.environ.get("PPING_LANG_API_PORT", "18765")
         try:
-            input(f"\nDashboard live at http://{host}:{port} — 按 Enter 退出...")
+            input(f"\n  Dashboard 保持在线 —— 浏览器打开 http://{host}:{port} 看完后,按 Enter 退出…")
         except EOFError:
             pass
     return 0

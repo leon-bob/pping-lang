@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+import textwrap
 from threading import Event, Thread
 from typing import Any
 
@@ -169,7 +170,16 @@ class DiagnosisEngine:
                 context={k: float(v) for k, v in f.values.items()} or None,
             ))
             if self._print:
-                print(f"\n[pping-lang] [{_GLYPH.get(f.severity, '*')}] {f.severity.upper()}: {f.name}",
+                # 终端版式:结论一行,推断/建议各起一行并按宽度折行(存进 Diagnosis 的
+                # suggestion 字段保持单行 `[推断]…[建议]…` 不变,那是 API/UI 的口径)。
+                print(f"\n[pping-lang] [{_GLYPH.get(f.severity, '*')}] {f.name}",
                       file=sys.stderr)
-                print(f"  {sug}", file=sys.stderr, flush=True)
+                for label, text in (("推断", f.hypothesis), ("建议", f.suggestion)):
+                    if text:
+                        print(textwrap.fill(
+                                  text, width=52,
+                                  initial_indent=f"  {label} ",
+                                  subsequent_indent=" " * 5),
+                              file=sys.stderr)
+                print(file=sys.stderr, flush=True)
         return fires

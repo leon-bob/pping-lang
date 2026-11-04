@@ -57,7 +57,7 @@ def test_demo_holds_on_tty(monkeypatch, capsys):
     _snap = dict(os.environ)
     try:
         assert main() == 0
-        assert "Dashboard live at" in capsys.readouterr().out
+        assert "Dashboard 保持在线" in capsys.readouterr().out
     finally:
         os.environ.clear()
         os.environ.update(_snap)
@@ -75,8 +75,8 @@ def test_demo_fires_double_low(monkeypatch, capsys):
     try:
         assert main() == 0
         out = capsys.readouterr().out
-        m = re.search(r"fired (\d+) times", out)
-        assert m, f"输出里没有 fire 统计:\n{out[-400:]}"
+        m = re.search(r"触发 (\d+) 次", out)
+        assert m, f"输出里没有触发统计:\n{out[-400:]}"
         assert int(m.group(1)) >= 1, f"规则 A 未触发:\n{out[-400:]}"
     finally:
         os.environ.clear()
