@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.1.8] — 2026-11-04
+
+### Fixed
+
+- 降噪：无 `[bench]` 安装时 duckdb 缺席被提三次，其中插件启动的 `bench_runs table init deferred` warning 每次启动必刷 —— 预期状态不该按异常打日志，降为 debug；demo 的种子跳过提示与头部重复，删一处
+
 ## [0.1.7] — 2026-11-04
 
 ### Changed

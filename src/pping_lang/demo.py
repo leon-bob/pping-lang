@@ -215,10 +215,9 @@ def main() -> int:
 
     # Pre-populate a sample bench run so the 压测 tab has something to show
     # (real bench needs an actual vLLM endpoint to hit; demo just shows the UI).
+    # 未装 duckdb 时静默跳过 —— 头部数据目录行已提示过 [bench],不再重复说。
     if HAVE_DUCKDB:
         _seed_demo_bench_runs(DEMO_DB)
-    else:
-        print("(跳过 bench 历史种子:未装 duckdb —— pip install 'pping-lang[bench]' 可启用)\n")
 
     start = time.monotonic()
     step = 0

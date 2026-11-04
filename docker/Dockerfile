@@ -3,7 +3,7 @@
 # 构建(仓库根为上下文):docker build -t pping-vllm:0.21-0.1.2 -f docker/Dockerfile .
 FROM vllm/vllm-openai:v0.21.0
 
-ARG PPING_LANG_VERSION=0.1.7
+ARG PPING_LANG_VERSION=0.1.8
 
 # 编译链盘点(2026-11 在 v0.21.0 镜像上实测):
 #   libcupti.so.13 + cupti_pcsampling.h —— 已有(torch 依赖链的 nvidia/cu13 带入)

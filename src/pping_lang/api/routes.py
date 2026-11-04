@@ -1297,6 +1297,10 @@ def build_app(
             bench_store.init_bench_table(_init_conn)
         finally:
             _init_conn.close()
+    except ImportError:
+        # duckdb 属 [bench] extra,缺席是预期状态而非异常 —— 静默(debug),
+        # 否则每次启动必刷一条 warning,像坏了似的。提示已由各 bench 端点按需给出。
+        logger.debug("[pping-lang] duckdb 未装,bench 历史禁用(pip install 'pping-lang[bench]')")
     except Exception as e:
         logger.warning("[pping-lang] bench_runs table init deferred: %s", e)
 
