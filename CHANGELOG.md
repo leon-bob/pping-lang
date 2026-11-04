@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [0.1.2] — 2026-11-04
+
+### Added
+
+- `pping-demo` 命令：离线 demo 打进 wheel（`pping_lang/demo.py` + console script），pip 用户无需 clone 仓库即可跑；README/CONTRIBUTING 同步，旧 `examples/embedded/demo.py` 保留为兼容 shim
+
+### Fixed
+
+- demo 收尾引用引擎重写前的旧属性 `_rule_engine`（现为 `_diag_engine`）→ 跑完循环即 AttributeError；此前无人端到端跑过，随 `pping-demo` 冒烟测试一并锁住
+
 ## [0.1.1] — 2026-11-03
 
 ### Added

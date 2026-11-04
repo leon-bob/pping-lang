@@ -6,7 +6,7 @@ FROM vllm/vllm-openai:v0.21.0
 # 换 cu12 base 时同步改这两个(co12: cudart-dev-12-x / nvidia-cuda-cupti-cu12)
 ARG CUDA_APT=13-0
 ARG CUPTI_PIP=cu13
-ARG PPING_LANG_VERSION=0.1.1
+ARG PPING_LANG_VERSION=0.1.2
 
 # Kernel 级 PC Sampling 的编译链,补齐 base 镜像缺的三样:
 #   g++               现编 libppingcupti.so 的编译器
