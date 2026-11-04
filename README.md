@@ -104,10 +104,11 @@ Roofline 视图附带自动结论：
 
 ```bash
 pip install pping-lang
-python -m examples.embedded.demo
+pping-demo
 ```
 
-脚本注入合成指标，约 7 秒后终端打印诊断，dashboard 可访问 `http://localhost:8765`。
+合成高 padding + 低 MFU 的指标流，约 8 秒后终端打印 marquee 诊断，dashboard 可访问
+`http://localhost:8765`。时长可调：`DEMO_DURATION_S=600 pping-demo`。
 （任何 Python 环境皆可；Debian/Ubuntu 系统 Python 受 PEP 668 保护，先进 venv：
 `python3 -m venv .venv && source .venv/bin/activate`。）
 

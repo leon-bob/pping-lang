@@ -54,7 +54,7 @@ pping_lang/
 UI 改动**必须** headless 浏览器实地验：
 
 ```bash
-DEMO_DURATION_S=600 python examples/embedded/demo.py &
+DEMO_DURATION_S=600 pping-demo &
 # 然后用 browse / playwright / 手动浏览器看 http://localhost:8765
 ```
 

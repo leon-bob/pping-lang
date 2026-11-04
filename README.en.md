@@ -104,10 +104,10 @@ Kernel-grade depth, normally reserved for Nsight Compute, made **always-on, low-
 
 ```bash
 pip install pping-lang
-python -m examples.embedded.demo
+pping-demo
 ```
 
-The script injects synthetic metrics; after about 7 seconds the terminal prints diagnoses, and the dashboard is reachable at `http://localhost:8765`.
+Injects a synthetic high-padding + low-MFU metric stream; marquee diagnoses print after ~8 seconds, and the dashboard is reachable at `http://localhost:8765`. Duration is tunable: `DEMO_DURATION_S=600 pping-demo`.
 (Any Python environment works; on a PEP 668-protected system Python enter a venv first:
 `python3 -m venv .venv && source .venv/bin/activate`.)
 
