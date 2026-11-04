@@ -107,7 +107,7 @@ pip install pping-lang
 pping-demo
 ```
 
-Injects a synthetic high-padding + low-MFU metric stream; marquee diagnoses print after ~8 seconds, and the dashboard is reachable at `http://localhost:8765`. Duration is tunable: `DEMO_DURATION_S=600 pping-demo`.
+Injects a synthetic low-MFU + idle-HBM + live-requests stream; the "double-low" diagnosis prints within seconds, and the dashboard runs on a demo-dedicated port `http://localhost:18765` (never colliding with a production dashboard on 8765). Duration is tunable: `DEMO_DURATION_S=600 pping-demo`.
 (Any Python environment works; on a PEP 668-protected system Python enter a venv first:
 `python3 -m venv .venv && source .venv/bin/activate`.)
 

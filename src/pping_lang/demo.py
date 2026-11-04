@@ -1,18 +1,13 @@
-"""端到端 demo — 不需要真 vLLM/GPU，喂合成 stats 触发 marquee 诊断规则。
+"""端到端 demo — 不需要真 vLLM/GPU，喂合成 stats 触发现役诊断引擎的规则。
 
 跑法（wheel 自带，pip 装上即用）：
     pping-demo
     # 或: python -m pping_lang.demo
     # 时长: DEMO_DURATION_S=600 pping-demo
 
-预期输出（约 8 秒后开始出现）：
-    [pping-lang] [!] WARNING: CUDA graph padding 过高
-      CUDA graph padding 比例 70%, 约 70% 的 GPU 算力浪费在补 0
-      -> 调小 max_num_seqs 或开启更细粒度的 cudagraph capture（PIECEWISE 模式）
-
-    [pping-lang] [!] WARNING: MFU 偏低（计算资源浪费）
-      MFU = 5% < 20%（理论峰值的小部分都没跑到）
-      -> 检查 padding ratio / batch 大小 / dtype（应为 bf16/fp16）
+剧本：低 MFU（~5%）+ HBM 空闲（mem_util 8%）+ 持续在途请求 → 触发规则 A
+「双低（算力、带宽均有余量）」。dashboard 起在 demo 专用端口 18765（不与生产
+dashboard 的 8765 冲突）。cudagraph/perf 派生指标照常喂 dashboard 各 tab。
 """
 from __future__ import annotations
 
@@ -174,6 +169,8 @@ def main() -> int:
     os.environ["PPING_LANG_FLUSH_INTERVAL_S"] = "1.0"      # default 5s → 1s
     os.environ["PPING_LANG_RULE_EVAL_INTERVAL_S"] = "1.0"
     os.environ["PPING_LANG_DISABLE_NVML"] = "1"            # demo 跑在无 GPU 机器上
+    # demo 专用端口:生产 dashboard 常占 8765,同机跑 demo 别抢端口
+    os.environ.setdefault("PPING_LANG_API_PORT", "18765")
 
     # Demo: populate /api/system so the dashboard hero card has something to show
     os.environ.setdefault("PPING_LANG_INFO_VLLM_VERSION", "0.20.2")
@@ -192,11 +189,11 @@ def main() -> int:
     demo_gpu_peak = GPUPeak(bf16_tflops=989.0, mem_bw_gbs=3350.0)
 
     print("=" * 70)
-    print("pping-lang demo — synthetic vLLM stats with high padding + low MFU")
+    print("pping-lang demo — synthetic vLLM stats: low MFU + idle HBM + live requests")
     print("=" * 70)
     print(f"DB:       {DEMO_DB}")
     print(f"Duration: {duration_s}s, step every 100ms")
-    print("Expecting marquee rules to fire after ~6-8s of accumulated data...\n")
+    print("Expecting rule A 「双低」 to fire within a few seconds...\n")
 
     plugin = PpingLangStatLogger(vllm_config=None, engine_index=0)
     plugin.log_engine_initialized()
@@ -217,6 +214,15 @@ def main() -> int:
                 make_unhealthy_scheduler_stats(step),
                 make_iteration_stats(step),
             )
+            # 合成 NVML 侧信号:demo 禁了真 NVML,而 A(双低)的 roofline 手段第三条
+            # check 要 gpu.mem_util_pct(HBM 控制器空闲%)—— 没这个点 demo 永远 fired 0。
+            # 8% = 带宽大量余量;ts 用墙钟(recent() 按墙钟窗口过滤)。
+            if plugin._sink is not None:
+                from pping_lang.metrics_catalog import M
+                from pping_lang.types import MetricPoint
+
+                plugin._sink.push_metric(MetricPoint(
+                    ts_ns=time.time_ns(), name=M.GPU_MEM_UTIL_PCT, value=8.0))
             time.sleep(0.1)
             step += 1
     finally:

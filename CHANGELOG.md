@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.1.3] — 2026-11-04
+
+### Fixed
+
+- `pping-demo` fired 0：demo 剧本还是旧 RuleEngine 的（padding/MFU 警告规则已随引擎重写下线），且现役规则 A（双低）的第三条 check 需要 NVML `gpu.mem_util_pct` 而 demo 禁了 NVML —— 现补合成该指标，数秒内稳定触发「双低」；新增 3 秒触发契约测试，引擎再演进时 demo 失配在测试里炸而不是在客户终端上
+- demo dashboard 默认端口改 18765：与生产 dashboard 的 8765 同机并跑不再 bind 失败
+
 ### Changed
 
 - README 方式二 docker run 补 `--cap-add SYS_ADMIN` 与 `--ipc host`：宿主机驱动默认 `RmProfilingAdminOnly=1`，缺 cap 时 Kernel 级采集被拒并静默降级（runw 实测定位）；镜像 tag 同步 0.21-0.1.2
