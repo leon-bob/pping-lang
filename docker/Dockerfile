@@ -15,11 +15,12 @@ ARG PPING_LANG_VERSION=0.1.2
 RUN apt-get update -y \
  && apt-get install -y --no-install-recommends g++ cuda-cudart-dev-${CUDA_APT} \
  && rm -rf /var/lib/apt/lists/* \
- && pip install --no-cache-dir nvidia-cuda-cupti-${CUPTI_PIP} "pping-lang==${PPING_LANG_VERSION}"
+ && uv pip install --system nvidia-cuda-cupti-${CUPTI_PIP} "pping-lang==${PPING_LANG_VERSION}"
 
 # 构建期预编译 .so:缓存(~/.pping-lang/lib)烙进镜像层,容器启动零编译;
 # 探测/编译失败直接 fail build —— 早暴露,不带病出厂(运行时另有自动降级兜底)
-RUN python3 -c "from pping_lang.native.builder import ensure_so; print(ensure_so())"
+# (上游最终镜像里确定存在的是 uv + python3.12,裸 pip/python3 不保证)
+RUN python3.12 -c "from pping_lang.native.builder import ensure_so; print(ensure_so())"
 
 # 容器内绑 0.0.0.0:曝光与否交给 `docker run -p`(边界在端口映射,不在进程);
 # 插件侧是 setdefault 语义,显式给 vllm --host / PPING_LANG_API_HOST 仍可覆盖
