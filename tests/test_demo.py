@@ -30,9 +30,14 @@ def test_demo_holds_on_tty(monkeypatch, capsys):
         def isatty() -> bool:
             return True
 
+    def _fake_input(prompt: str = "") -> str:
+        print(prompt)  # 真 input 会把 prompt 打到 stdout,替身保持同形
+        raise EOFError
+
     monkeypatch.setattr("sys.stdin", _FakeStdin())
-    monkeypatch.setattr(builtins, "input", lambda *_: (_ for _ in ()).throw(EOFError))
+    monkeypatch.setattr(builtins, "input", _fake_input)
     monkeypatch.setenv("DEMO_DURATION_S", "0")
+    monkeypatch.setenv("PPING_LANG_API_PORT", "18766")  # 避开前一个 demo 测试的 18765
     _snap = dict(os.environ)
     try:
         assert main() == 0
