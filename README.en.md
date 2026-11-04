@@ -145,11 +145,18 @@ Python is never touched, the version pairing matches Option 1, and it fits air-g
 K8s / no-conda setups:
 
 ```bash
-docker build -t pping-vllm:0.21-0.1.0 -f docker/Dockerfile .
-docker run --gpus all -p 8000:8000 -p 8765:8765 \
+docker build -t pping-vllm:0.21-0.1.2 -f docker/Dockerfile .
+docker run --gpus all --ipc host --cap-add SYS_ADMIN \
+  -p 8000:8000 -p 8765:8765 \
   -v ~/.cache/huggingface:/root/.cache/huggingface \
-  pping-vllm:0.21-0.1.0 <model>
+  pping-vllm:0.21-0.1.2 <model>
 ```
+
+`--cap-add SYS_ADMIN` is required for kernel-level collection: the host NVIDIA
+driver defaults to `RmProfilingAdminOnly=1` (admin-only performance counters),
+so an unprivileged container's probe is rejected and **silently degrades** to
+basic integration; drop the flag if the host has counters unlocked. `--ipc host`
+matches the official vLLM container requirements (shared memory).
 
 The container entrypoint is `pping-vllm serve` (arguments pass through to vllm); the startup log
 prints the same dashboard address. Counter unlocking (the host-side prerequisite for kernel-level

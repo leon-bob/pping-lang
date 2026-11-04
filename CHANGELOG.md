@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- README 方式二 docker run 补 `--cap-add SYS_ADMIN` 与 `--ipc host`：宿主机驱动默认 `RmProfilingAdminOnly=1`，缺 cap 时 Kernel 级采集被拒并静默降级（runw 实测定位）；镜像 tag 同步 0.21-0.1.2
+
 ## [0.1.2] — 2026-11-04
 
 ### Added

@@ -147,11 +147,17 @@ pping-vllm serve <model>          # 等价于 vllm serve,额外开启 Kernel 级
 适合气墙机器 / K8s / 不装 conda 的场景：
 
 ```bash
-docker build -t pping-vllm:0.21-0.1.0 -f docker/Dockerfile .
-docker run --gpus all -p 8000:8000 -p 8765:8765 \
+docker build -t pping-vllm:0.21-0.1.2 -f docker/Dockerfile .
+docker run --gpus all --ipc host --cap-add SYS_ADMIN \
+  -p 8000:8000 -p 8765:8765 \
   -v ~/.cache/huggingface:/root/.cache/huggingface \
-  pping-vllm:0.21-0.1.0 <model>
+  pping-vllm:0.21-0.1.2 <model>
 ```
+
+`--cap-add SYS_ADMIN` 是 Kernel 级采集的前提：宿主机 NVIDIA 驱动默认
+`RmProfilingAdminOnly=1`（性能计数器仅管理员），容器内普通权限 prime 会被拒并
+**静默降级**为基础接入；宿主机已解锁计数器时可去掉。`--ipc host` 与 vLLM 官方
+容器运行要求一致（共享内存）。
 
 容器入口即 `pping-vllm serve`（参数原样透传给 vllm），启动日志同样输出 dashboard 地址。
 性能计数器解锁（Kernel 级采集的宿主机前置）两种方式相同，见上文「诚实边界」。
