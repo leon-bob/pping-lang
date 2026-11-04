@@ -115,16 +115,21 @@ dashboard 在 demo 专用端口 `http://localhost:18765`（不与生产 dashboar
 
 ### 接入 vLLM · 方式一：conda / venv 独立环境（推荐）
 
-**专用新环境** + 一条命令装齐。别复用旧环境（依赖汤是上手失败的头号来源）；`[vllm]` extra
-内置已验证的版本配对（`vllm>=0.20,<0.22`），不用自己对版本：
+**专用新环境**，两个包分开装、互不锁版本。别复用旧环境（依赖汤是上手失败的头号来源）：
 
 ```bash
 conda create -n pping-lang python=3.12 -y
 conda activate pping-lang
 # 或: python3 -m venv .venv && source .venv/bin/activate
-pip install "pping-lang[vllm]"     # vLLM + 插件一条命令装齐
+pip install vllm                   # vLLM 自选任意版本
+pip install pping-lang             # 插件装进同一环境即可
 vllm serve <model>                 # 基础接入：KPI / Roofline / NVML / 诊断，自动加载
 ```
+
+**已有 vLLM 在跑**：在它所在的环境里 `pip install pping-lang` 即可，vllm 一动不动。
+
+兼容性：不设版本门槛 —— 0.21 真机全链路验证过，其余版本尽力兼容；版本漂移导致采集层
+不兼容时自动降级（按异常类型告警一次），绝不影响 vLLM 服务本身。
 
 vLLM 启动日志将输出 dashboard 地址 `[pping-lang] dashboard → http://localhost:8765`。
 

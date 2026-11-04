@@ -113,17 +113,23 @@ Injects a synthetic low-MFU + idle-HBM + live-requests stream; the "double-low" 
 
 ### Integrating with vLLM · Option 1: dedicated conda / venv environment (recommended)
 
-A **fresh, dedicated environment** plus one command. Don't reuse an old environment (dependency soup
-is the #1 onboarding failure); the `[vllm]` extra bakes in the validated version pairing
-(`vllm>=0.20,<0.22`), so you don't match versions yourself:
+A **fresh, dedicated environment**; the two packages install separately with no version lock.
+Don't reuse an old environment (dependency soup is the #1 onboarding failure):
 
 ```bash
 conda create -n pping-lang python=3.12 -y
 conda activate pping-lang
 # or: python3 -m venv .venv && source .venv/bin/activate
-pip install "pping-lang[vllm]"     # installs vLLM + plugin in one go
+pip install vllm                   # any vLLM version you choose
+pip install pping-lang             # the plugin, into the same environment
 vllm serve <model>                 # basic integration: KPI / roofline / NVML / diagnosis, loaded automatically
 ```
+
+**Already running vLLM?** Just `pip install pping-lang` inside that environment — vLLM stays untouched.
+
+Compatibility: no version gate — validated end-to-end on 0.21, best-effort on other
+versions; if stats internals drift, collection degrades gracefully (one warning per
+error type) and never affects vLLM itself.
 
 The vLLM startup log will print the dashboard address `[pping-lang] dashboard → http://localhost:8765`.
 

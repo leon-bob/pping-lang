@@ -65,6 +65,18 @@ def _bad_scheduler() -> SimpleNamespace:
     )
 
 
+def test_record_never_raises_into_vllm(plugin):
+    """vLLM 版本漂移 → collect 抛 AttributeError,record 必须吞掉(vLLM 主循环不能被插件炸)。"""
+    p, _ = plugin
+    assert p._collector is not None
+
+    def _boom(*_a, **_k):
+        raise AttributeError("vLLM 0.x 改了 stats 字段名")
+
+    p._collector.collect = _boom
+    p.record(_bad_scheduler(), None)  # 不抛即通过
+
+
 def test_derived_ratio_metrics_reach_jsonl(plugin):
     """派生指标 padding_ratio / mfu_ratio / mem_bw_util_ratio 都进了 metrics.jsonl。"""
     p, store_dir = plugin

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pping-lang"
-version = "0.1.9"
+version = "0.1.10"
 description = "vLLM 性能诊断插件——把 vLLM 指标 + GPU 物理层数据喂给规则引擎，自动告诉你为什么慢"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -32,8 +32,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# vllm 是 runtime 依赖，但安装它需要 CUDA + 体积大，dev/test 通过 fallback 解耦
-vllm = ["vllm>=0.20.0,<0.22.0"]
+# vllm 不设 extra、不锁版本:分开装(任意版本,采集层不兼容只降级不崩 serve,见 plugin.record 兜底)
 cupti = ["cupti-python>=13.0.0"]                  # 阶段 1a kernel 级采集 (Linux x86_64/aarch64 only)
 server = ["grpcio>=1.60.0", "protobuf>=4.0.0"]   # v0.2
 analyzer = ["prometheus-api-client>=0.5.0"]       # v0.3

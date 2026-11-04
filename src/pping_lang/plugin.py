@@ -153,6 +153,7 @@ class PpingLangStatLogger(StatLoggerBase):
         self._diag_engine = None  # DiagnosisEngine(4 瓶颈诊断引擎,见 rules/diagnosis_runtime)
         self._api: ApiServer | None = None
         self._rule_store: RuleStore | None = None
+        self._collect_fail_seen: set[str] = set()  # 采集异常按类型只告警一次(10Hz 热路径防刷屏)
         # 重 I/O 延迟到 log_engine_initialized（pre-impl-rfc §4.2）
         logger.info(
             "[pping-lang] plugin instantiated for engine_index=%d (vllm_available=%s)",
@@ -361,7 +362,10 @@ class PpingLangStatLogger(StatLoggerBase):
             return
         t0 = time.monotonic_ns()  # 测耗时差值,用 monotonic
         if self._collector is not None:
-            self._collector.collect(scheduler_stats, iteration_stats)
+            try:
+                self._collector.collect(scheduler_stats, iteration_stats)
+            except Exception as e:  # noqa: BLE001 — 兜底:vLLM 内部 stats 字段随版本漂移,
+                self._note_collect_failure(e)  # 采集炸不能炸 serve(承诺:任何失败不影响 vLLM)
         elapsed_us = (time.monotonic_ns() - t0) / 1000.0
         self._sink.push_metric(MetricPoint(
             ts_ns=wall_ns(),  # 落库 ts,跨进程/重启可比
@@ -373,6 +377,18 @@ class PpingLangStatLogger(StatLoggerBase):
     def log(self) -> None:
         # v1 中几乎不被调用 (vllm-project/vllm#20175)。逻辑放 record()。
         pass
+
+    def _note_collect_failure(self, e: Exception) -> None:
+        """采集链路异常:按类型只告警一次,永不外抛(版本漂移 → 降级,不崩 serve)。"""
+        kind = type(e).__name__
+        if kind in self._collect_fail_seen:
+            return
+        self._collect_fail_seen.add(kind)
+        logger.warning(
+            "[pping-lang] 指标采集失败(%s: %s),后续同类异常静默忽略 —— 不影响 vLLM 服务。"
+            "多为 vLLM 版本间 stats 字段变动,欢迎带上 vLLM 版本号反馈",
+            kind, e,
+        )
 
     def record_sleep_state(self, is_awake: int, level: int) -> None:
         # v0.1 no-op
